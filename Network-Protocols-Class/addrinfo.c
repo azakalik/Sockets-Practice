@@ -25,8 +25,6 @@ main(int argc, char *argv[])
 
 	addrString = argv[1];
 
-	hint.ai_protocol = IPPROTO_TCP;
-
 	memset(&hint, 0, sizeof(hint));
 	hint.ai_flags = AI_CANONNAME;
 	if ((err = getaddrinfo(addrString, service, &hint, &ailist)) != 0)
