@@ -5,12 +5,6 @@
 //server_socket is the passive socket id (to listen for new requests)
 int server_socket = NOT_ALLOCATED;
 
-//client_socket is the active socket id (to answer the requests)
-int client_socket = NOT_ALLOCATED;
-
-void handle_interrupt(int signal);
-void handle_connection(int client_socket, char * client_address);
-
 int main(int argc, char ** argv){
     SA_IN servaddr;
     uint8_t buff[MAXLINE+1];
@@ -40,7 +34,7 @@ int main(int argc, char ** argv){
     if ( bind(server_socket, (SA *) &servaddr, sizeof(servaddr)) < 0 )
         err_n_die("Bind error");
 
-    if ((listen(server_socket, 10)) < 0)
+    if ((listen(server_socket, BACKLOG)) < 0)
         err_n_die("Listen error");
     // ===============================================================
 
@@ -48,6 +42,7 @@ int main(int argc, char ** argv){
         SA_IN addr;
         socklen_t addr_len = sizeof(addr);
         char client_address[MAXLINE+1];
+        int client_socket;
 
         printf("Waiting for a connection on port %d\n", SERVER_PORT);
         fflush(stdout);
@@ -60,9 +55,13 @@ int main(int argc, char ** argv){
 
         // Converts address in 'Network' format to 'Presentation' format
         inet_ntop(AF_INET, &(addr.sin_addr), client_address, MAXLINE);
-        printf("Client connected: %s\n", client_address);
+        printf("Client connected. IP: %s\n", client_address);
 
-        handle_connection(client_socket, client_address);
+        // Create a thread that handles the connection
+        pthread_t thread;
+        int * pclient = malloc(sizeof(int));
+        *pclient = client_socket;
+        pthread_create(&thread, NULL, handle_connection, pclient);
     }
 
 }   
@@ -78,15 +77,19 @@ void handle_interrupt(int signal){
             err_n_die("Close error while attempting to close passive socket");
 
         //Close the active socket
-        if(client_socket != NOT_ALLOCATED && close(client_socket) < 0)
-            err_n_die("Close error while attempting to close active socket");
+        // if(client_socket != NOT_ALLOCATED && close(client_socket) < 0)
+        //     err_n_die("Close error while attempting to close active socket");
 
         puts("Exited succesfully.");
         exit(0);
     }
 }
 
-void handle_connection(int client_socket, char * client_address){
+void * handle_connection(void * p_client_socket){
+    int client_socket = *((int *) p_client_socket);
+    char * client_address = "0.0.0.0"; //todo
+    free(p_client_socket);
+
     char buffer[BUFSIZE];
     char filebuffer[BUFSIZE];
     char responsebuffer[BUFSIZE*2];
@@ -116,7 +119,7 @@ void handle_connection(int client_socket, char * client_address){
     if (realpath(buffer, actualpath) == NULL){
         printf("ERROR(bad path): %s\n", buffer);
         close(client_socket);
-        return;
+        return NULL;
     }
 
     //read file
@@ -124,7 +127,7 @@ void handle_connection(int client_socket, char * client_address){
     if (fp == NULL){
         printf("ERROR(open): %s\n", buffer);
         close(client_socket);
-        return;
+        return NULL;
     }
 
     //create a response
@@ -145,4 +148,5 @@ void handle_connection(int client_socket, char * client_address){
         err_n_die("Close error");
 
     printf("Closed connection with client %d\n", client_socket);
+    return NULL;
 }
