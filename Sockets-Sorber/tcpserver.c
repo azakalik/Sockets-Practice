@@ -59,6 +59,7 @@ int main(int argc, char ** argv){
     while(1){
         struct sockaddr_in addr;
         socklen_t addr_len;
+        char client_address[MAXLINE+1];
 
         printf("Waiting for a connection on port %d\n", SERVER_PORT);
         fflush(stdout);
@@ -67,6 +68,10 @@ int main(int argc, char ** argv){
         // the last two arguments get the address of the one connecting
         // connfd is the active socket we will be using to talk to the client
         connfd = accept(listenfd, (SA*)&addr, &addr_len);
+
+        // Converts address in 'Network' format to 'Presentation' format
+        inet_ntop(AF_INET, &(addr.sin_addr), client_address, MAXLINE);
+        printf("Client connected: %s\n", client_address);
 
         //clear the buffer
         memset(recvline, 0, MAXLINE);
@@ -88,7 +93,7 @@ int main(int argc, char ** argv){
         err_n_die("Read error");
 
         //create a response
-        snprintf((char*)buff, sizeof(buff), "HTTP/1.0 200 OK\r\n\r\nHello, world!!!");
+        snprintf((char*)buff, sizeof(buff), "HTTP/1.0 200 OK\r\n\r\n<h1>Hello, user!!!</h1><p>Your IP is %s</p>", client_address);
 
         //send the response to the client
         if(write(connfd, (char*)buff, strlen((char*)buff)) < 0)
