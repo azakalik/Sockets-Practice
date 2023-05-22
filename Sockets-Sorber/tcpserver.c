@@ -5,6 +5,11 @@
 //server_socket is the passive socket id (to listen for new requests)
 int server_socket = NOT_ALLOCATED;
 
+typedef struct {
+    int client_socket;
+    char* client_address;
+} ThreadData;
+
 int main(int argc, char ** argv){
     SA_IN servaddr;
     uint8_t buff[MAXLINE+1];
@@ -59,9 +64,10 @@ int main(int argc, char ** argv){
 
         // Create a thread that handles the connection
         pthread_t thread;
-        int * pclient = malloc(sizeof(int));
-        *pclient = client_socket;
-        pthread_create(&thread, NULL, handle_connection, pclient);
+        ThreadData * thread_data = malloc(sizeof(ThreadData));
+        thread_data->client_socket = client_socket;
+        thread_data->client_address = strdup(client_address);
+        pthread_create(&thread, NULL, handle_connection, thread_data);
     }
 
 }   
@@ -86,10 +92,11 @@ void handle_interrupt(int signal){
     }
 }
 
-void * handle_connection(void * p_client_socket){
-    int client_socket = *((int *) p_client_socket);
-    char * client_address = "0.0.0.0"; //todo
-    free(p_client_socket);
+void * handle_connection(void * p_thread_data){
+    ThreadData thread_data = *((ThreadData *) p_thread_data);
+    int client_socket = thread_data.client_socket;
+    char * client_address = thread_data.client_address;
+    free(p_thread_data);
 
     char buffer[BUFSIZE];
     char filebuffer[BUFSIZE];
@@ -116,36 +123,47 @@ void * handle_connection(void * p_client_socket){
     printf("REQUEST (socket %d): %s\n", client_socket, buffer);
     fflush(stdout);
 
+    FILE *fp = NULL;
+
     //path validity check
     if (realpath(buffer, actualpath) == NULL){
-        printf("ERROR(bad path): %s\n", buffer);
-        close(client_socket);
-        return NULL;
+        // printf("ERROR(bad path): %s\n", buffer);
+        // close(client_socket);
+        // return NULL;
+    } else {
+        //read file
+        fp = fopen(actualpath, "r");
+        if (fp == NULL){
+            printf("ERROR(open): %s\n", buffer);
+            close(client_socket);
+            return NULL;
+        }
     }
 
-    //read file
-    FILE *fp = fopen(actualpath, "r");
-    if (fp == NULL){
-        printf("ERROR(open): %s\n", buffer);
-        close(client_socket);
-        return NULL;
-    }
+    
 
     //create a response
-    snprintf((char*)responsebuffer, sizeof(responsebuffer), "HTTP/1.0 200 OK\r\n\r\n<h1>Hello, user!!!</h1><p>Your IP is %s</p><p>The file you requested is below</p>", client_address);
+    snprintf((char*)responsebuffer, sizeof(responsebuffer), "HTTP/1.0 200 OK\r\n\r\n<h1>Hello, user!!!</h1><p>Your IP is %s</p><p>If you requested a file, it is below</p>", client_address);
+    free(client_address);
 
     //send the response to the client
     if(write(client_socket, (char*)responsebuffer, strlen((char*)responsebuffer)) < 0)
         err_n_die("Write error");
 
-    //send the file to the client
-    //todo error check in fread
-    while ((bytes_read = fread(filebuffer, 1, BUFSIZE, fp)) > 0){
-        printf("Sending %zu bytes to client %d\n", bytes_read, client_socket);
-        write(client_socket, filebuffer, bytes_read);
-    }
+    if(fp != NULL){
+        //send the file to the client
+        //todo error check in fread
+        while ((bytes_read = fread(filebuffer, 1, BUFSIZE, fp)) > 0){
+            printf("Sending %zu bytes to client %d\n", bytes_read, client_socket);
+            write(client_socket, filebuffer, bytes_read);
+        }
 
-    if(fclose(fp) < 0 || close(client_socket) < 0)
+        if(fclose(fp) < 0)
+            err_n_die("Close error");
+    }
+    
+
+    if(close(client_socket) < 0)
         err_n_die("Close error");
 
     printf("Closed connection with client %d\n", client_socket);

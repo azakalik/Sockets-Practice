@@ -11,11 +11,6 @@
 #define BACKLOG 50
 
 void handle_interrupt(int signal);
-void * handle_connection(void * p_client_socket);
-
-struct connection {
-    int client_socket;
-    char * client_address;
-};
+void * handle_connection(void * p_thread_data);
 
 #endif
