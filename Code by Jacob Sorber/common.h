@@ -19,13 +19,16 @@
 
 //the port I will be communicating to
 //80 is the standard HTTP port
-#define SERVER_PORT 80
+#define SERVER_PORT 8082
 
 //buffer size
 #define MAXLINE 4096
 
 //for less verbose code
 #define SA struct sockaddr
+
+//to distinguish between allocated and not allocated socket ids
+#define NOT_ALLOCATED -1
 
 //for error handling
 void err_n_die(const char * fmt, ...);
