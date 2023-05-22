@@ -76,6 +76,7 @@ void handle_interrupt(int signal){
         if(server_socket != NOT_ALLOCATED && close(server_socket) < 0)
             err_n_die("Close error while attempting to close passive socket");
 
+        //TODO
         //Close the active socket
         // if(client_socket != NOT_ALLOCATED && close(client_socket) < 0)
         //     err_n_die("Close error while attempting to close active socket");
