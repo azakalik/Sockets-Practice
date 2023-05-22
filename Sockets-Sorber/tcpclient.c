@@ -41,12 +41,12 @@ int main(int argc, char ** argv){
 
     //write the request into the socket
     //if at least one character doesn't send, the program exits. this can be improved
-    if (write(sockfd, sendline, sendbytes) != sendbytes)
-        err_n_die("Write error");
+    if (send(sockfd, sendline, sendbytes, 0) != sendbytes)
+        err_n_die("Send error");
     
     memset(recvline, 0, MAXLINE);
     //read the server's answer
-    while( (n = read(sockfd, recvline, MAXLINE-1)) > 0 ){
+    while( (n = recv(sockfd, recvline, MAXLINE-1, 0)) > 0 ){
         printf("%s", recvline);
         memset(recvline, 0, MAXLINE);
     }

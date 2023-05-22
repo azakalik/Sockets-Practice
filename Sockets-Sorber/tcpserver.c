@@ -106,7 +106,7 @@ void * handle_connection(void * p_thread_data){
     char actualpath[PATHMAX+1];
 
     // First prints the hex (for debugging) and then prints the client's request
-    while ( (bytes_read = read(client_socket, buffer+msgsize, sizeof(buffer) - msgsize - 1) ) > 0){
+    while ( (bytes_read = recv(client_socket, buffer+msgsize, sizeof(buffer) - msgsize - 1, 0) ) > 0){
         msgsize += bytes_read;
 
         //hacky way to detect end of message
@@ -147,15 +147,15 @@ void * handle_connection(void * p_thread_data){
     free(client_address);
 
     //send the response to the client
-    if(write(client_socket, (char*)responsebuffer, strlen((char*)responsebuffer)) < 0)
-        err_n_die("Write error");
+    if(send(client_socket, (char*)responsebuffer, strlen((char*)responsebuffer), 0) < 0)
+        err_n_die("Send error");
 
     if(fp != NULL){
         //send the file to the client
         //todo error check in fread
         while ((bytes_read = fread(filebuffer, 1, BUFSIZE, fp)) > 0){
             printf("Sending %zu bytes to client %d\n", bytes_read, client_socket);
-            write(client_socket, filebuffer, bytes_read);
+            send(client_socket, filebuffer, bytes_read, 0);
         }
 
         if(fclose(fp) < 0)
