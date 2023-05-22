@@ -26,6 +26,7 @@
 
 //for less verbose code
 #define SA struct sockaddr
+#define SA_IN struct sockaddr_in
 
 //to distinguish between allocated and not allocated socket ids
 #define NOT_ALLOCATED -1
