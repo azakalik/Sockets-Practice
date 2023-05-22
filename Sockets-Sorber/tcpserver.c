@@ -43,7 +43,7 @@ int main(int argc, char ** argv){
         err_n_die("Listen error");
     // ===============================================================
 
-    while(1){ //todo maxclients
+    while(1){
         SA_IN addr;
         socklen_t addr_len = sizeof(addr);
         char client_address[MAXLINE+1];
